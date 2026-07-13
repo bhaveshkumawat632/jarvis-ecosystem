@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+celery
+redis
+pydantic
+groq
+apscheduler
+faster_whisper
+moviepy
+Pillow
+python-dotenv

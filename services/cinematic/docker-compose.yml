@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: jarvis_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - jarvis_net
+
+  jarvis_worker:
+    build: .
+    container_name: jarvis_celery_worker
+    command: celery -A tasks worker --loglevel=info --concurrency=1
+    volumes:
+      - .:/workspace
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - jarvis_net
+    depends_on:
+      - redis
+
+  jarvis_master:
+    build: .
+    container_name: jarvis_orchestrator
+    command: python3 run_chronological_arbitrage.py
+    volumes:
+      - .:/workspace
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - jarvis_net
+    depends_on:
+      - redis
+      - jarvis_worker
+
+networks:
+  jarvis_net:
+    driver: bridge

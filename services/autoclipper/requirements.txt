@@ -1,0 +1,6 @@
+celery
+redis
+openai
+opencv_python_headless
+faster_whisper
+yt-dlp

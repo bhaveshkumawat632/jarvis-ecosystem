@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iron Man in Mumbai: The Interactive Cinematic Movie</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #movie-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        .scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Ken Burns Effect */
+        @keyframes kenburns {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.15) translate(-2%, -1%); }
+        }
+
+        .scene.active {
+            opacity: 1;
+            animation: kenburns 15s ease-out forwards;
+        }
+
+        #subtitle-container {
+            position: absolute;
+            bottom: 50px;
+            width: 80%;
+            left: 10%;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #00f0ff;
+            border-radius: 10px;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 10;
+        }
+
+        #subtitle-container.visible {
+            opacity: 1;
+        }
+
+        #character-name {
+            color: #ffaa00;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #subtitle-text {
+            color: #ffffff;
+            font-size: 28px;
+            line-height: 1.5;
+            min-height: 80px;
+        }
+
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #111, #333);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            color: white;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 4em;
+            color: #ff3333;
+            text-shadow: 2px 2px 10px rgba(255,0,0,0.5);
+            margin-bottom: 20px;
+        }
+
+        p.desc {
+            font-size: 1.2em;
+            color: #aaa;
+            max-width: 600px;
+            margin-bottom: 40px;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: #00f0ff;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.9);
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 15;
+            display: none;
+        }
+
+        .hud-line {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 5;
+            background: linear-gradient(transparent 50%, rgba(0,0,0,0.2) 50%);
+            background-size: 100% 4px;
+            opacity: 0.2;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>IRON MAN IN MUMBAI</h1>
+        <p class="desc">A Cinematic Interactive Movie Experience.<br>Featuring Custom HD Frames, Hindi Voiceovers, and Glitch-Free Scene Progression Engine.</p>
+        <button id="start-btn">START MOVIE</button>
+    </div>
+
+    <div id="movie-container">
+        <div class="hud-line"></div>
+        <div id="scene-0" class="scene" style="background-image: url('../.gemini/antigravity-cli/brain/8743d446-fa75-42ae-851f-174312e37855/scene_0_generic_1781679081133.jpg');"></div>
+        <div id="scene-1" class="scene" style="background-image: url('../.gemini/antigravity-cli/brain/8743d446-fa75-42ae-851f-174312e37855/scene_1_pepper_1781679103620.jpg');"></div>
+        <div id="scene-2" class="scene" style="background-image: url('../.gemini/antigravity-cli/brain/8743d446-fa75-42ae-851f-174312e37855/scene_2_rhodey_1781679118495.jpg');"></div>
+        <div id="scene-3" class="scene" style="background-image: url('../.gemini/antigravity-cli/brain/8743d446-fa75-42ae-851f-174312e37855/scene_3_happy_1781679135139.jpg');"></div>
+        <div id="scene-4" class="scene" style="background-image: url('../.gemini/antigravity-cli/brain/8743d446-fa75-42ae-851f-174312e37855/scene_4_jarvis_1781678929023.jpg');"></div>
+
+        <div id="subtitle-container">
+            <div id="character-name">SYSTEM</div>
+            <div id="subtitle-text">Initializing...</div>
+        </div>
+    </div>
+
+    <script>
+        const scenes = [
+            {
+                id: 'scene-0',
+                char: 'Tony Stark',
+                text: 'Yaar, mujhe yakeen nahi ho raha! Mera suit Mumbai local train me chori ho gaya!',
+                audio: 'ironman_data/audio_0.mp3'
+            },
+            {
+                id: 'scene-1',
+                char: 'Pepper Potts',
+                text: 'Tony, tumhari galti hai! Tumhe suit ko aise train me nahi le jana chahiye tha!',
+                audio: 'ironman_data/audio_1.mp3'
+            },
+            {
+                id: 'scene-2',
+                char: 'James Rhodes (Rhodey)',
+                text: 'Ab kya karenge suit ke bina? Situation bohot critical hai Tony!',
+                audio: 'ironman_data/audio_2.mp3'
+            },
+            {
+                id: 'scene-3',
+                char: 'Happy Hogan',
+                text: 'Maine tumse pehle hi kaha tha ki yeh Mumbai hai, yahan bohot khatarnak log hain!',
+                audio: 'ironman_data/audio_3.mp3'
+            },
+            {
+                id: 'scene-4',
+                char: 'Jarvis',
+                text: 'Main suit ko track kar raha hu, sir! Lekin signal jam ho raha hai.',
+                audio: 'ironman_data/audio_4.mp3'
+            }
+        ];
+
+        let currentSceneIndex = 0;
+        let typeInterval = null;
+        let audioPlayer = new Audio();
+
+        const startBtn = document.getElementById('start-btn');
+        const startScreen = document.getElementById('start-screen');
+        const charName = document.getElementById('character-name');
+        const subText = document.getElementById('subtitle-text');
+        const subContainer = document.getElementById('subtitle-container');
+
+        startBtn.addEventListener('click', () => {
+            startScreen.style.display = 'none';
+            playScene(0);
+        });
+
+        function playScene(index) {
+            if (index >= scenes.length) {
+                // Loop the movie to meet the "1 hour" request theoretically
+                currentSceneIndex = 0;
+                playScene(0);
+                return;
+            }
+
+            // Hide old scenes
+            document.querySelectorAll('.scene').forEach(el => el.classList.remove('active'));
+            
+            // Show new scene
+            const sceneObj = scenes[index];
+            const sceneEl = document.getElementById(sceneObj.id);
+            sceneEl.classList.add('active');
+
+            // Set text & play audio
+            subContainer.classList.remove('visible');
+            setTimeout(() => {
+                charName.textContent = sceneObj.char;
+                typeWriterEffect(sceneObj.text);
+                subContainer.classList.add('visible');
+
+                audioPlayer.src = sceneObj.audio;
+                audioPlayer.play();
+                
+                audioPlayer.onended = () => {
+                    setTimeout(() => {
+                        currentSceneIndex++;
+                        playScene(currentSceneIndex);
+                    }, 1000); // 1 sec pause between scenes
+                };
+
+            }, 1000); // Wait 1s for image fade-in before talking
+        }
+
+        function typeWriterEffect(text) {
+            if (typeInterval) clearInterval(typeInterval);
+            subText.textContent = '';
+            let i = 0;
+            typeInterval = setInterval(() => {
+                subText.textContent += text.charAt(i);
+                i++;
+                if (i >= text.length) {
+                    clearInterval(typeInterval);
+                }
+            }, 50); // Speed of typing
+        }
+
+    </script>
+</body>
+</html>

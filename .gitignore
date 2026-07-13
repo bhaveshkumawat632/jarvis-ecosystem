@@ -1,0 +1,46 @@
+# Secrets & API keys
+.env
+*.env
+**/new api keys
+**/*keys*
+
+# Large ML model files (exceed GitHub 50MB limit)
+**/*.pth
+**/*.ckpt
+**/*.safetensors
+**/*.bin
+**/models/
+**/ComfyUI/models/
+**/ComfyUI/output/
+**/ComfyUI/input/
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+
+# Output / temp files
+**/output/
+**/temp/
+**/projects/*/
+**/*.mp4
+**/*.mp3
+**/*.wav
+**/*.jpg
+**/*.png
+**/*.webp
+
+# Logs & DB
+*.log
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+
+# Credentials
+token.json
+*.json

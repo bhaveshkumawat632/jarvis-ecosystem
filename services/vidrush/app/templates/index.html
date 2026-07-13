@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidRush Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; display: flex; gap: 20px; }
+        .panel { background: #2a2a2a; padding: 20px; border-radius: 8px; flex: 1; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: none; }
+        button { background: #007bff; color: white; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        #logs { background: #000; color: #0f0; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; }
+        video { width: 100%; border-radius: 8px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>VidRush AI Dashboard</h1>
+    <div class="container">
+        <div class="panel">
+            <h2>Generate New Video</h2>
+            <input type="text" id="topic" placeholder="Video Topic (e.g., Facts about Space)">
+            <input type="number" id="duration" placeholder="Duration (minutes)" value="1">
+            <button onclick="generate()">Start Generation</button>
+            
+            <h3>Live Progress</h3>
+            <div id="logs">Connecting to WebSocket...</div>
+        </div>
+        <div class="panel">
+            <h2>Render History</h2>
+            <ul id="history">
+                {% for video in videos %}
+                    <li><a href="#" onclick="playVideo('{{ video }}')">{{ video }}</a></li>
+                {% endfor %}
+            </ul>
+            <video id="player" controls style="display:none;"></video>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket(`ws://${location.host}/ws/logs`);
+        const logs = document.getElementById('logs');
+        
+        ws.onopen = () => logs.innerHTML = "Connected to Live Logs.\n";
+        ws.onmessage = (event) => {
+            logs.innerHTML += event.data + "<br>";
+            logs.scrollTop = logs.scrollHeight;
+        };
+
+        async function generate() {
+            const topic = document.getElementById('topic').value;
+            const duration = document.getElementById('duration').value;
+            logs.innerHTML += `> Queuing: ${topic}<br>`;
+            await fetch('/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic, duration: parseInt(duration), quality: "1080p" })
+            });
+        }
+
+        function playVideo(filename) {
+            const player = document.getElementById('player');
+            player.src = "/outputs/" + filename;
+            player.style.display = "block";
+            player.play();
+        }
+    </script>
+</body>
+</html>

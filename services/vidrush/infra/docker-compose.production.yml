@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis-cluster:6379/0
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/vidrush
+      - OBJECT_STORAGE_URL=http://minio:9000
+    depends_on:
+      - redis-cluster
+      - postgres
+    restart: always
+    deploy:
+      replicas: 3
+      update_config:
+        order: start-first
+        failure_action: rollback
+
+  redis-cluster:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: vidrush
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: always
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: always
+
+  gpu-worker:
+    build: .
+    command: python3 -m app.core.supervisor
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - REDIS_URL=redis://redis-cluster:6379/0
+    depends_on:
+      - redis-cluster
+    restart: always
+
+volumes:
+  redis_data:
+  pg_data:
+  minio_data:

@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    environment {
+        PYTHONUNBUFFERED = "1"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                python3 -m venv venv
+                . venv/bin/activate
+                pip install --upgrade pip
+                pip install pytest selenium
+                if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+                '''
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                sh '''
+                . venv/bin/activate
+                pytest test_movie_generator.py test_integration.py -v
+                '''
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo "Pipeline finished!"
+        }
+        success {
+            echo "Tests passed successfully."
+        }
+        failure {
+            echo "Tests failed. Please check the logs."
+        }
+    }
+}

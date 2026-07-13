@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+celery
+redis
+pydantic
+openai
+replicate
+TTS==0.22.0
+diffusers
+transformers
+scipy
+audiocraft
+moviepy
+requests
+Pillow

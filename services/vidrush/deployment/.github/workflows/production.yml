@@ -1,0 +1,34 @@
+name: Production CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Run Deterministic Tests
+        run: |
+          pip install pytest
+          pytest tests/ --disable-warnings
+
+      - name: Build Docker Images
+        run: |
+          docker build -t vidrush-api ./api
+          docker build -t vidrush-worker ./workers
+
+      - name: Push to Container Registry
+        run: |
+          echo "Pushing images to registry..."
+          # docker push vidrush-api:latest
+
+      - name: Trigger Kubernetes Rolling Update
+        run: |
+          echo "Applying k8s manifests..."
+          # kubectl apply -f infra/kubernetes/
+          # kubectl rollout status deployment/vidrush-api
