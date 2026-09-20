@@ -2,6 +2,8 @@ import os
 os.environ["IMAGEIO_FFMPEG_EXE"] = "/usr/bin/ffmpeg"
 from dotenv import load_dotenv
 load_dotenv()
+from llm_router import LLMRouter
+
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import sys
@@ -409,92 +411,16 @@ def generate_script_old(project_id, idea, youtube_info=None, groq_key=None, nvid
         f"}}\n"
     )
 
-    success = False
-    content = ""
-    
-    # 1. Try Groq (extremely fast and robust)
-    if groq_key:
-        print("Attempting screenplay generation using Groq Llama-3.3 model...")
-        try:
-            url = "https://api.groq.com/openai/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {groq_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": "llama-3.3-70b-versatile",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "temperature": 0.7,
-                "response_format": {"type": "json_object"}
-            }
-            r = requests.post(url, headers=headers, json=payload, timeout=20)
-            r.raise_for_status()
-            result = r.json()
-            content = result['choices'][0]['message']['content'].strip()
-            success = True
-            print("Screenplay successfully generated using Groq.")
-        except Exception as e:
-            print(f"Warning: Groq screenplay generation failed: {e}. Trying Nvidia NIM fallback...")
-
-    # 2. Try Nvidia NIM
-    if not success and nvidia_key:
-        print("Attempting screenplay generation using Nvidia NIM Llama-3.3 model...")
-        try:
-            url = "https://integrate.api.nvidia.com/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {nvidia_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": "meta/llama-3.3-70b-instruct",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "temperature": 0.7,
-                "max_tokens": 1500
-            }
-            r = requests.post(url, headers=headers, json=payload, timeout=75)
-            r.raise_for_status()
-            result = r.json()
-            content = result['choices'][0]['message']['content'].strip()
-            success = True
-            print("Screenplay successfully generated using Nvidia NIM.")
-        except Exception as e:
-            print(f"Warning: Nvidia screenplay generation failed: {e}. Trying OpenRouter fallback...")
-
-    # 3. Try OpenRouter fallback
-    if not success:
-        api_key = get_openrouter_client()
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "google/gemini-2.5-flash",
-            "max_tokens": 1500,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-        }
-        try:
-            response = requests.post(url, headers=headers, data=json.dumps(data))
-            response.raise_for_status()
-            result = response.json()
-            content = result['choices'][0]['message']['content'].strip()
-            success = True
-            print("Screenplay successfully generated using OpenRouter.")
-        except Exception as e:
-            print(f"Error generating script: {e}")
-            if 'response' in locals():
-                print("API response:", response.text)
-            log_progress(project_id, "script", "failed", 40, f"Script generation failed: {e}")
-            raise e
+    try:
+        router = LLMRouter()
+        content = router.generate_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            response_format={"type": "json_object"}
+        )
+    except Exception as e:
+        log_progress(project_id, "script", "failed", 40, f"Script generation failed on all providers: {e}")
+        raise e
 
     # Parse and clean output
     try:
@@ -2700,42 +2626,23 @@ def generate_script(topic, duration_minutes, style, groq_key=None):
     }}
     """
     try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
+        router = LLMRouter()
+        content = router.generate_completion(
+            system_prompt="You are a professional video scriptwriter. Respond ONLY with a valid JSON matching the user prompt structure. Do not include markdown code block formatting.",
+            user_prompt=prompt,
             response_format={"type": "json_object"}
         )
-        return json.loads(response.choices[0].message.content)
-    except Exception as e:
-        print(f"Groq script generation failed: {e}. Trying OpenRouter fallback...")
-        api_key = get_openrouter_client()
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "google/gemini-2.5-flash",
-            "messages": [
-                {"role": "system", "content": "You are a professional video scriptwriter. Respond ONLY with a valid JSON matching the user prompt structure. Do not include markdown code block formatting."},
-                {"role": "user", "content": prompt}
-            ]
-        }
-        try:
-            r = requests.post(url, headers=headers, json=data, timeout=30)
-            r.raise_for_status()
-            content = r.json()['choices'][0]['message']['content'].strip()
-            if content.startswith("```"):
-                lines = content.split("\n")
-                if lines[0].startswith("```json") or lines[0].startswith("```"):
-                    content = "\n".join(lines[1:-1])
-                else:
-                    content = "\n".join(lines[1:])
-                content = content.strip("`").strip()
-            return json.loads(content)
-        except Exception as ex:
-            print(f"Fallback script generation failed: {ex}")
-            raise ex
+        if content.startswith("```"):
+            lines = content.split("\n")
+            if lines[0].startswith("```json") or lines[0].startswith("```"):
+                content = "\n".join(lines[1:-1])
+            else:
+                content = "\n".join(lines[1:])
+            content = content.strip("`").strip()
+        return json.loads(content)
+    except Exception as ex:
+        print(f"Script generation failed: {ex}")
+        raise ex
 
 def generate_ai_clip(visual_prompt, scene_id):
     """Generate cinematic AI video clip using Replicate minimax/video-01."""
